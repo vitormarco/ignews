@@ -6,6 +6,7 @@ import { createClient } from "src/services/prismicio";
 import Head from "next/head";
 
 import styles from "./post.module.scss";
+import { routes } from "src/utils/routes";
 
 type PostType = {
   slug: string;
@@ -44,13 +45,20 @@ export const getServerSideProps: GetServerSideProps = async ({
   params,
   previewData,
 }) => {
-  const client = createClient({ previewData });
   const session = await getSession({ req });
   const { slug } = params;
 
-  const response = await client.getByUID("post", String(slug));
+  if (!session.activeSubscription) {
+    return {
+      redirect: {
+        destination: routes.home,
+        permanent: false,
+      },
+    };
+  }
 
-  console.log(JSON.stringify(response, null, 2));
+  const client = createClient({ previewData });
+  const response = await client.getByUID("post", String(slug));
 
   const post = {
     slug,
