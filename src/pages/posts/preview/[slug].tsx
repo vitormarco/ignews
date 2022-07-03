@@ -1,12 +1,15 @@
-import { GetServerSideProps } from "next";
-import { getSession } from "next-auth/react";
+import { GetStaticProps, use } from "next";
+import { useRouter } from "next/router";
+import { useSession } from "next-auth/react";
 import { asText, asHTML } from "@prismicio/helpers";
 
 import { createClient } from "src/services/prismicio";
 import Head from "next/head";
 
-import styles from "./post.module.scss";
+import styles from "../post.module.scss";
+import Link from "next/link";
 import { routes } from "src/utils/routes";
+import { useEffect } from "react";
 
 type PostType = {
   slug: string;
@@ -15,11 +18,20 @@ type PostType = {
   updatedAt: string;
 };
 
-interface PostProps {
+interface PostPreviewProps {
   post: PostType;
 }
 
-export default function Post({ post }: PostProps) {
+export default function PostPreview({ post }: PostPreviewProps) {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (session?.activeSubscription) {
+      router.push(routes.post(post.slug));
+    }
+  }, [session]);
+
   return (
     <>
       <Head>
@@ -31,31 +43,33 @@ export default function Post({ post }: PostProps) {
           <h1>{post.title}</h1>
           <time>{post.updatedAt}</time>
           <div
-            className={styles.postContent}
+            className={`${styles.postContent} ${styles.previewContent}`}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
+          <div className={styles.continueReading}>
+            Wanna continue reading?
+            <Link href={routes.home}>
+              <a>Subscribe now 🤗</a>
+            </Link>
+          </div>
         </article>
       </main>
     </>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({
-  req,
+export const getStaticPaths = () => {
+  return {
+    paths: [],
+    fallback: "blocking",
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({
   params,
   previewData,
 }) => {
-  const session = await getSession({ req });
   const { slug } = params;
-
-  if (!session?.activeSubscription) {
-    return {
-      redirect: {
-        destination: routes.home,
-        permanent: false,
-      },
-    };
-  }
 
   const client = createClient({ previewData });
   const response = await client.getByUID("post", String(slug));
@@ -63,7 +77,7 @@ export const getServerSideProps: GetServerSideProps = async ({
   const post = {
     slug,
     title: asText(response.data.title),
-    content: asHTML(response.data.content),
+    content: asHTML(response.data.content.splice(0, 3)),
     updatedAt: new Date(response.last_publication_date).toLocaleDateString(
       "pt-BR",
       {

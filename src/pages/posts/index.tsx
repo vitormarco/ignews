@@ -67,7 +67,6 @@ export const getStaticProps: GetStaticProps = async ({ previewData }) => {
     ),
   }));
 
-  console.log(JSON.stringify(publication, null, 2));
   return {
     props: {
       posts,
