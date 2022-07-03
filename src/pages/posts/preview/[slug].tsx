@@ -1,4 +1,4 @@
-import { GetStaticProps, use } from "next";
+import { GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import { asText, asHTML } from "@prismicio/helpers";
@@ -92,5 +92,6 @@ export const getStaticProps: GetStaticProps = async ({
     props: {
       post,
     },
+    redirect: 60 * 30, // 30 minutes
   };
 };
